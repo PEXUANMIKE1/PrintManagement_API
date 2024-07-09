@@ -29,6 +29,8 @@ namespace PrintManagerment_API.Infrastructure.DataContexts
         public virtual DbSet<ShippingMethod> ShippingMethods { get; set; }
         public virtual DbSet<Team> Teams { get; set; }
         public virtual DbSet<User> Users { get; set; }
+        public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+        public virtual DbSet<ConfirmEmail> ConfirmEmails { get; set; }
         public virtual DbSet<Role> Roles { get; set; }
         public virtual DbSet<Permissions> Permissions { get; set; }
         public async Task<int> CommitChangesAsync()

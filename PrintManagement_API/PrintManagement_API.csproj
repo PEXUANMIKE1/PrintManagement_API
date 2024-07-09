@@ -22,10 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\PrintManagerment_API.Application\PrintManagerment_API.Application.csproj" />
     <ProjectReference Include="..\PrintManagerment_API.Doman\PrintManagerment_API.Doman.csproj" />
     <ProjectReference Include="..\PrintManagerment_API.Infrastructure\PrintManagerment_API.Infrastructure.csproj" />

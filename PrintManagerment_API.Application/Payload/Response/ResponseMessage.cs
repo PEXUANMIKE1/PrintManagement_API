@@ -8,5 +8,9 @@ namespace PrintManagerment_API.Application.Payload.Response
 {
     public class ResponseMessage
     {
+        public static string GetEmailSuccessMessage(string email)
+        {
+            return $"Mã đã được gửi đến: {email}";
+        }
     }
 }

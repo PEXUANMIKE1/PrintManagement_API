@@ -17,7 +17,7 @@ namespace PrintManagerment_API.Doman.Entities
         public string PhoneNumber { get; set; } = string.Empty;
         public DateTime CreateTime { get; set; }
         public DateTime? UpdateTime { get; set; }
-        public int TeamId { get; set; }
+        public int? TeamId { get; set; }
         public virtual Team? Team { get; set; }
         public bool IsActive { get; set; } = false;
         public virtual ICollection<Permissions>? Permissions { get; set; }
