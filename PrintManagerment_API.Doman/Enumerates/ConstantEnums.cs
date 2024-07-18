@@ -8,66 +8,72 @@ namespace PrintManagerment_API.Doman.Enumerates
 {
     public class ConstantEnums
     {
-        public enum KpiPeriodEnum 
-        { 
-            Month = 1,   //Tháng
-            Quarter = 2, //Quý
-            Year = 3,    //Năm
+        public enum KpiPeriodEnum
+        {
+            Month,   // Tháng
+            Quarter, // Quý
+            Year,    // Năm
         }
+
         public enum BillStatus
         {
-            Pending = 1,      // Chờ xử lý
-            Approved = 2,     // Đã phê duyệt
-            Paid = 3,         // Đã thanh toán
-            Unpaid = 4,       // Chưa thanh toán
-            Cancelled = 5,    // Đã hủy
-            Refunded = 6,     // Đã hoàn tiền
+            Pending,      // Chờ xử lý
+            Approved,     // Đã phê duyệt
+            Paid,         // Đã thanh toán
+            Unpaid,       // Chưa thanh toán
+            Cancelled,    // Đã hủy
+            Refunded      // Đã hoàn tiền
         }
+
         public enum DeliveryStatus
         {
-            Pending = 1,       // Chờ xử lý
-            Scheduled = 2,     // Đã lên lịch
-            InTransit = 3,     // Đang vận chuyển
-            OutForDelivery = 4,// Đang giao hàng
-            Delivered = 5,     // Đã giao hàng
-            FailedDelivery = 6,// Giao hàng thất bại
-            Returned = 7,      // Đã trả lại
-            Cancelled  = 8     // Đã hủy
+            Pending,       // Chờ xử lý
+            Scheduled,     // Đã lên lịch
+            InTransit,     // Đang vận chuyển
+            OutForDelivery,// Đang giao hàng
+            Delivered,     // Đã giao hàng
+            FailedDelivery,// Giao hàng thất bại
+            Returned,      // Đã trả lại
+            Cancelled      // Đã hủy
         }
+
         public enum ResourceType
         {
-            Equipment = 1,   // Thiết bị
-            Material = 2,    // Vật liệu
-            Tool = 3,        // Công cụ
-            Software = 4     // Phần mềm
+            Equipment,   // Thiết bị
+            Material,    // Vật liệu
+            Tool,        // Công cụ
+            Software     // Phần mềm
         }
 
         public enum ResourceStatus
         {
-            Available = 1,   // Sẵn sàng sử dụng
-            Maintenance = 2, // Cần bảo trì
+            Available,   // Sẵn sàng sử dụng
+            Maintenance, // Cần bảo trì
         }
+
         public enum ProjectStatus
         {
-            Designing = 1,  //đang thiết kế
-            Printing = 2,   //đang in
-            Completed = 3,  //Đã Hoàn thành
+            Designing = 1,  // Đang thiết kế
+            Printing = 2,   // Đang in
+            Completed = 3   // Đã Hoàn thành
         }
+
         public enum DesignStatus
         {
-            Pending = 1,        // Chờ xử lý
-            InProgress = 2,     // Đang thiết kế
-            Completed = 3,      // Đã hoàn thành
-            Approved = 4,       // Đã phê duyệt
-            Rejected = 5        // Bị từ chối
+            Pending,        // Chờ xử lý
+            InProgress,     // Đang thiết kế
+            Completed,      // Đã hoàn thành
+            Approved,       // Đã phê duyệt
+            Rejected        // Bị từ chối
         }
+
         public enum PrintJobStatus
         {
-            Pending = 1,        // Chờ xử lý
-            InProgress = 2,     // Đang in
-            Completed = 3,      // Đã hoàn thành
-            OnHold = 4,         // Đang tạm dừng
-            Cancelled = 5       // Đã hủy
+            Pending,        // Chờ xử lý
+            InProgress,     // Đang in
+            Completed,      // Đã hoàn thành
+            OnHold,         // Đang tạm dừng
+            Cancelled       // Đã hủy
         }
     }
 }

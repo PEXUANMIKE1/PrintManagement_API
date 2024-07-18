@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using Org.BouncyCastle.Asn1.Ocsp;
 using Org.BouncyCastle.Crypto.Generators;
 using PrintManagerment_API.Application.Handle.HandleEmail;
 using PrintManagerment_API.Application.InterfaceServices;
@@ -8,11 +10,15 @@ using PrintManagerment_API.Application.Payload.RequestModels.UserRequests;
 using PrintManagerment_API.Application.Payload.Response;
 using PrintManagerment_API.Application.Payload.ResponseModels.DataUsers;
 using PrintManagerment_API.Doman.Entities;
+using PrintManagerment_API.Doman.Enumerates;
 using PrintManagerment_API.Doman.InterfaceRepositories;
 using PrintManagerment_API.Doman.Validations;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using BCryptNet = BCrypt.Net.BCrypt;
@@ -27,39 +33,209 @@ namespace PrintManagerment_API.Application.ImplementServices
         private readonly IBaseRepository<ConfirmEmail> _baseConfirmEmailRepository;
         private readonly IBaseRepository<RefreshToken> _baseRefreshTokenlRepository;
         private readonly IBaseRepository<Permissions> _basePermissionRepository;
+        private readonly IBaseRepository<Team> _baseTeamRepository;
         private readonly IConfiguration _configuration;
         private readonly UserConverter _userConverter;
         private readonly IEmailService _emailService;
         private readonly IUserRepository _userRepository;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         #endregion
 
         #region Constructor
         public AuthService(IBaseRepository<User> baseUserRepository, IBaseRepository<Role> baseRoleRepository, IBaseRepository<ConfirmEmail> baseConfirmEmailRepository,
             IBaseRepository<RefreshToken> baseRefreshTokenRepository, IBaseRepository<Permissions> basePermissionsRepository, IConfiguration configuration,
-            UserConverter userConverter, IEmailService emailService, IUserRepository userRepository)
+            UserConverter userConverter, IEmailService emailService, IUserRepository userRepository, IHttpContextAccessor httpContextAccessor, IBaseRepository<Team> baseTeamRepository)
         {
             _baseUserRepository = baseUserRepository;
             _baseRoleRepository = baseRoleRepository;
             _baseConfirmEmailRepository = baseConfirmEmailRepository;
             _baseRefreshTokenlRepository = baseRefreshTokenRepository;
+            _basePermissionRepository = basePermissionsRepository;
             _configuration = configuration;
             _userConverter = userConverter;
             _emailService = emailService;
             _userRepository = userRepository;
+            _httpContextAccessor = httpContextAccessor;
+            _baseTeamRepository = baseTeamRepository;
+        }
+        #endregion
+
+        #region Private Methods
+        private string GenerateCodeActive()
+        {
+            var str = "code_" + DateTime.Now.Ticks.ToString();
+            return str;
+        }
+        private JwtSecurityToken GetToken(List<Claim> authClaims)
+        {
+            var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:SecretKey"]));
+            _ = int.TryParse(_configuration["JWT:TokenValidityInHours"], out int tokenValidityInHours);
+            var expirationUTC = DateTime.UtcNow.AddHours(tokenValidityInHours);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["JWT:ValidIssuer"],
+                audience: _configuration["JWT:ValidAudience"],
+                expires: expirationUTC,
+                claims: authClaims,
+                signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
+                );
+            return token;
+        }
+        private string GenerateRefreshToken()
+        {
+            var randomNumber = new Byte[64];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(randomNumber);
+            }
+            return Convert.ToBase64String(randomNumber);
         }
         #endregion
 
         #region Public Methods
         public async Task<ResponseObject<DataResponseLogin>> GetJwtTokenAsync(User user)
         {
-            throw new NotImplementedException();
-        }
+            try
+            {
+                var permissions = await _basePermissionRepository.GetAllAsync(x=>x.UserId == user.Id);
+                var roles = await _baseRoleRepository.GetAllAsync();
+                var TeamName = "";
+                if(user.TeamId.HasValue)
+                {
+                    var team = await _baseTeamRepository.GetByIdAsync(user.TeamId.Value);
+                    if(team == null)
+                    {
+                        return new ResponseObject<DataResponseLogin>
+                        {
+                            Status = StatusCodes.Status200OK,
+                            Message = "Có lỗi xảy ra",
+                            Data = null
+                        };
+                    }
 
+                    TeamName = team.Name;
+                }
+                var authCliams = new List<Claim>
+                {
+                    new Claim("Id", user.Id.ToString()),
+                    new Claim("UserName", user.UserName),
+                    new Claim("Email", user.Email),
+                    new Claim("FullName", user.FullName),
+                    new Claim("PhoneNumber", user.PhoneNumber),
+                    new Claim("Team", TeamName),
+                    new Claim("Avatar", user.Avatar),
+                };
+                foreach(var permission in permissions)
+                {
+                    foreach(var role in roles)
+                    {
+                        if(permission.RoleId == role.Id)
+                        {
+                            authCliams.Add(new Claim("Permission", role.RoleName));
+                        }
+                    }
+                }
+                var userRole = await _userRepository.GetRolesOfUserAsync(user);
+                foreach(var item in userRole)
+                {
+                    authCliams.Add(new Claim(ClaimTypes.Role, item));
+                }
+                var jwtToken = GetToken(authCliams);
+                var refreshToken = GenerateRefreshToken();
+                _ = int.TryParse(_configuration["JWT:RefreshTokenValidity"], out int refreshTokenValidity);
+                RefreshToken rf = new RefreshToken
+                {
+                    ExpiryTime = DateTime.UtcNow.AddHours(refreshTokenValidity),
+                    UserId = user.Id,
+                    Token = refreshToken
+                };
+                rf = await _baseRefreshTokenlRepository.CreateAsync(rf);
+                return new ResponseObject<DataResponseLogin>
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = "Tạo token thành công",
+                    Data = new DataResponseLogin
+                    {
+                        AccessToken = new JwtSecurityTokenHandler().WriteToken(jwtToken),
+                        RefreshToken = refreshToken
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ResponseObject<DataResponseLogin>
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Error" + ex.Message,
+                    Data = null
+                };
+            }
+        }
         public async Task<ResponseObject<DataResponseLogin>> Login(Request_Login request)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var userLog = await _baseUserRepository.GetAsync(x => x.UserName.Equals(request.UserName));
+                if (userLog == null)
+                {
+                    return new ResponseObject<DataResponseLogin>
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = "User name không chính xác!",
+                        Data = null
+                    };
+                }
+                if (userLog.IsActive == false) 
+                {
+                    return new ResponseObject<DataResponseLogin>
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = "Tài khoản này đã bị ban!",
+                        Data = null
+                    };
+                }
+                var confirmEmail = await _baseConfirmEmailRepository.GetAsync(x=>x.UserId == userLog.Id);
+                if (confirmEmail.IsConfirmed == false)
+                {
+                    return new ResponseObject<DataResponseLogin>
+                    {
+                        Status = StatusCodes.Status401Unauthorized,
+                        Message = "Tài khoản chưa được xác thực email!",
+                        Data = null
+                    };
+                }
+                bool checkPass = BCryptNet.Verify(request.Password,userLog.Password);
+                if (!checkPass)
+                {
+                    return new ResponseObject<DataResponseLogin>
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = "Mật khẩu không chính xác!",
+                        Data = null
+                    };
+                }
+                var Token = await GetJwtTokenAsync(userLog);
+                return new ResponseObject<DataResponseLogin>
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = "Đăng nhập thành công!",
+                    Data = new DataResponseLogin
+                    {
+                        AccessToken = Token.Data.AccessToken,
+                        RefreshToken = Token.Data.RefreshToken,
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ResponseObject<DataResponseLogin>
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Đăng nhập thất bại!\nError: " + ex.StackTrace,
+                    Data = null
+                };
+            }
         }
-
         public async Task<ResponseObject<DataResponseUser>> Register(Request_Register request)
         {
             try
@@ -108,34 +284,33 @@ namespace PrintManagerment_API.Application.ImplementServices
                         Message = "User name đã tồn tại",
                         Data = null
                     };
-                }
+                }               
                 var User = new User
                 {
-                    IsActive = false,// Phải xác thực email thì tài khoản mới được hoạt động
+                    IsActive = true,
                     CreateTime = DateTime.Now,
                     UserName = request.UserName,
                     Password = BCryptNet.HashPassword(request.Password),
                     FullName = request.FullName,
                     DateOfBirth = request.DateOfBirth,
                     Email = request.Email,
-                    Avatar = "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.freepik.com%2Ffree-photos-vectors" +
-                                "%2Favatar&psig=AOvVaw0o8g_fkfqKoiSN2civWqmb&ust=1720599142929000&source" +
-                                "=images&cd=vfe&opi=89978449&ved=0CBEQjRxqFwoTCMDBkLvBmYcDFQAAAAAdAAAAABAE",
+                    Avatar = "https://img.freepik.com/premium-vector/cute-boy-smiling-cartoon-kawaii-boy-illustration-boy-avatar-happy-kid_1001605-3445.jpg?w=826",
                     PhoneNumber = request.PhoneNumber,
+                    TeamId = null,
                 };
                 User = await _baseUserRepository.CreateAsync(User);
                 //add role mặc định cho tài khoản: User
-                //await _userRepository.AddRoleForUserAsync(User, new List<string> { "User" });
+                await _userRepository.AddRoleForUserAsync(User, new List<string> { "User" });
                 //tạo đối tượng bảng confirmEmail lưu vào db
                 ConfirmEmail confirmEmail = new ConfirmEmail
                 {
                     ConfirmCode = GenerateCodeActive(),
                     IsConfirmed = false,
                     UserId = User.Id,
-                    ExpiryTime = DateTime.Now.AddMinutes(3),
+                    ExpiryTime = DateTime.Now,
                 };
                 confirmEmail = await _baseConfirmEmailRepository.CreateAsync(confirmEmail);
-                var message = new EmailMessage(new string[] { request.Email }, "Xác nhận email đăng ký tài khoản",$"Mã xác nhận email của bạn (tồn tại 3 phút): {confirmEmail.ConfirmCode}");
+                var message = new EmailMessage(new string[] { request.Email }, "Xác nhận email đăng ký tài khoản",$"Mã xác nhận email của bạn: {confirmEmail.ConfirmCode}");
                 //send confirm code về mail 
                 var responseMessage = _emailService.SendEmail(message);
 
@@ -143,7 +318,7 @@ namespace PrintManagerment_API.Application.ImplementServices
                 {
                     Status = StatusCodes.Status201Created,
                     Message = $"Mã xác nhận email đã được gửi! Vui lòng kiểm tra email",
-                    Data = _userConverter.EntityDTO(User)
+                    Data = await _userConverter.EntityDTO(User)
                 };
             }
             catch (Exception ex)
@@ -156,49 +331,205 @@ namespace PrintManagerment_API.Application.ImplementServices
                 };
             }
         }
-
         public async Task<ResponseObject<DataResponseLogin>> RenewAccessToken(Request_RefreshToken request)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var rfToken = await _baseRefreshTokenlRepository.GetAsync(x => x.Token.Equals(request.RefreshToken));
+                if (rfToken.ExpiryTime < DateTime.UtcNow)
+                {
+                    return new ResponseObject<DataResponseLogin>
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = "Refesh Token đã hết hạn",
+                        Data = null
+                    };
+                }
+                var user = await _baseUserRepository.GetByIdAsync(rfToken.UserId);
+                var newAccessToken = await GetJwtTokenAsync(user);
+                return new ResponseObject<DataResponseLogin>
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Tạo mới token thành công",
+                    Data = new DataResponseLogin
+                    {
+                        AccessToken = newAccessToken.Data.AccessToken,
+                        RefreshToken = newAccessToken.Data.RefreshToken
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
         }
-
         public async Task<ResponseObject<DataResponseUser>> ChangePassword(int userId, Request_ChangePassword request)
         {
-            throw new NotImplementedException();
+            var currentUser = _httpContextAccessor.HttpContext.User;
+            try
+            {
+                if(!currentUser.Identity.IsAuthenticated)
+                {
+                    return new ResponseObject<DataResponseUser>
+                    {
+                        Status = StatusCodes.Status401Unauthorized,
+                        Message = "Người dùng chưa xác thực",
+                        Data = null
+                    };
+                }
+                var user = await _baseUserRepository.GetByIdAsync(userId);
+                var checkPass = BCryptNet.Verify(request.OldPassword, user.Password);
+                if (!checkPass)
+                {
+                    return new ResponseObject<DataResponseUser>
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = "Mật khẩu không chính xác !",
+                        Data = null
+                    };
+                }
+                if (request.newPassword.Equals(request.OldPassword))
+                {
+                    return new ResponseObject<DataResponseUser>
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = "Mật khẩu mới trùng với mật khẩu cũ! Vui lòng thay đổi",
+                        Data = null
+                    };
+                }
+                if (!request.newPassword.Equals(request.ConfirmPassword))
+                {
+                    return new ResponseObject<DataResponseUser>
+                    {
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = "Mật khẩu xác nhận không trùng khớp!",
+                        Data = null
+                    };
+                }
+                user.Password = BCryptNet.HashPassword(request.newPassword);
+                user.UpdateTime = DateTime.UtcNow;
+                await _baseUserRepository.UpdateAsync(user);
+                return new ResponseObject<DataResponseUser>
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = "Đổi mật khẩu thành công!",
+                    Data = await _userConverter.EntityDTO(user)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ResponseObject<DataResponseUser>
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Có lỗi trong quá trình xử lý\n Erorr: " + ex.StackTrace,
+                    Data = null
+                };
+            }
         }
-
         public async Task<string> ConfirmCreateNewPassword(Request_ForgotPasswordCreateNew request)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var confirm = await _baseConfirmEmailRepository.GetAsync(x => x.ConfirmCode.Equals(request.ConfirmCode));
+                if (confirm == null)
+                {
+                    return "Mã xác nhận không chính xác!";
+                }
+                if (confirm.ExpiryTime < DateTime.UtcNow)
+                {
+                    return "Mã xác nhận đã hết hạn! Vui lòng gửi lại";
+                }
+                if (!request.NewPassword.Equals(request.ConfirmPassword))
+                {
+                    return "Mật khẩu xác nhận không trùng khớp";
+                }
+                var user = await _baseUserRepository.GetByIdAsync(u => u.Id == confirm.UserId);
+                user.Password = BCryptNet.HashPassword(request.NewPassword);
+                user.UpdateTime = DateTime.UtcNow;
+                await _baseUserRepository.UpdateAsync(user);
+                return "Thay đổi mật khẩu thành công!";
+            }
+            catch (Exception ex)
+            {
+                return "Error: " + ex.StackTrace;
+            }
         }
-
         public async Task<string> ConfirmRegisterAccount(string confirmCode)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var code = await _baseConfirmEmailRepository.GetAsync(x => x.ConfirmCode.Equals(confirmCode));
+                if (code == null)
+                {
+                    return "Mã xác nhận không hợp lệ!";
+                }
+                if (code.IsConfirmed == true)
+                {
+                    return "Bạn đã xác nhận email này rồi!";
+                }
+                code.IsConfirmed = true;
+                await _baseConfirmEmailRepository.UpdateAsync(code);
+                return "Xác nhận đăng ký tài khoản thành công. Bạn có thể đăng nhập vào hệ thống!";
+            }
+            catch (Exception ex)
+            {
+                return ex.Message;
+            }
         }
-
         public async Task<string> ForgotPassword(string email)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var user = await _userRepository.GetUserByEmail(email);
+                if (user == null)
+                {
+                    return "Email không tồn tại!";
+                }
+                ConfirmEmail confirmEmail = new ConfirmEmail
+                {
+                    ConfirmCode = GenerateCodeActive(),
+                    ExpiryTime = DateTime.UtcNow.AddMinutes(3),
+                    UserId = user.Id,
+                    IsConfirmed = false,
+                };
+                confirmEmail = await _baseConfirmEmailRepository.CreateAsync(confirmEmail);
+                var message = new EmailMessage(new string[] { user.Email }, "Mã xác nhận quên mật khẩu!", $"Mã xác nhận quên mật khẩu của bạn(3p): {confirmEmail.ConfirmCode}");
+                var send = _emailService.SendEmail(message);
+                return "Đã gửi mã xác nhận quên mật khẩu! Vui lòng kiểm tra hòm thư của bạn";
+            }
+            catch (Exception ex)
+            {
+                return "Error: " + ex.StackTrace;
+            }
         }
-
         public async Task<string> AddRoleForUser(int userId, List<string> roles)
         {
-            throw new NotImplementedException();
+            var currentUser = _httpContextAccessor.HttpContext.User;
+            if (!currentUser.Identity.IsAuthenticated)
+            {
+                return "Người dùng chưa xác thực!";
+            }
+            if (currentUser.IsInRole("Admin"))
+            {
+                return "Người dùng không đủ quyền để sử dụng chức năng này";
+            }
+            return "Chức năng này đang được phát triển";
         }
-
         public async Task<string> DeleteRoleForUser(int userId, List<string> roles)
         {
-            throw new NotImplementedException();
+            var currentUser = _httpContextAccessor.HttpContext.User;
+            if (!currentUser.Identity.IsAuthenticated)
+            {
+                return "Người dùng chưa xác thực!";
+            }
+            if (currentUser.IsInRole("Admin"))
+            {
+                return "Người dùng không đủ quyền để sử dụng chức năng này";
+            }
+            return "Chức năng này đang được phát triển";
         }
+        
         #endregion
 
-        #region Private Methods
-        private string GenerateCodeActive()
-        {
-            var str = "code_"+DateTime.Now.Ticks.ToString();
-            return str;
-        }
-        #endregion
     }
 }

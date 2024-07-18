@@ -19,7 +19,7 @@ namespace PrintManagerment_API.Doman.Entities
         public DateTime? UpdateTime { get; set; }
         public int? TeamId { get; set; }
         public virtual Team? Team { get; set; }
-        public bool IsActive { get; set; } = false;
+        public bool IsActive { get; set; } = true;
         public virtual ICollection<Permissions>? Permissions { get; set; }
         public virtual ICollection<Notification>? Notifications { get; set; }
         public virtual ICollection<KeyPerformanceIndicators>? KeyPerformanceIndicators { get; set; }

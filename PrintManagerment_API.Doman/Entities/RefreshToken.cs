@@ -9,7 +9,7 @@ namespace PrintManagerment_API.Doman.Entities
     public class RefreshToken : BaseEnities
     {
         public string Token { get; set; } = string.Empty;
-        public long UserId { get; set; }
+        public int UserId { get; set; }
         public virtual User? User { get; set; }
         public DateTime ExpiryTime { get; set; }
     }

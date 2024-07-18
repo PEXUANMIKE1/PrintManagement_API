@@ -12,10 +12,10 @@ namespace PrintManagerment_API.Doman.Entities
         public string ProjectName { get; set; } = string.Empty;
         public string RequestDescriptionFromCustomer { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
-        public int EmployeeId { get; set; }
+        public int? EmployeeId { get; set; } //nhân viên phụ trách
         public User? Employee { get; set; }
         public DateTime ExpectedEndDate { get; set; }
-        public int CustomerId { get; set; }
+        public int CustomerId { get; set; } //khách hàng của dự án
         public Customer? Customer { get; set; }
         public ConstantEnums.ProjectStatus ProjectStatus { get; set; }
         public virtual ICollection<Delivery>? Deliveries { get; set; }

@@ -13,7 +13,7 @@ namespace PrintManagerment_API.Doman.Entities
         public int NumberOfMember { get; set; }
         public DateTime CreateTime { get; set;}
         public DateTime UpdateTime { get; set; }
-        public int ManagerId { get; set; }
+        public int? ManagerId { get; set; }
         public virtual ICollection<User>? Users { get; set; }
     }
 }

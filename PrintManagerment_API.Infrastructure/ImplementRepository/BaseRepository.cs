@@ -69,7 +69,7 @@ namespace PrintManagerment_API.Infrastructure.ImplementRepository
         }
         public async Task<IEnumerable<TEntity>> GetAllAsync(Expression<Func<TEntity, bool>> expression = null)
         {
-            IQueryable<TEntity> query = expression != null ? DbSet.Where(expression) : DbSet;
+            IEnumerable<TEntity> query = expression != null ? DbSet.Where(expression) : DbSet;
             return query;
         }
         public async Task<TEntity> GetAsync(Expression<Func<TEntity, bool>> expression = null)

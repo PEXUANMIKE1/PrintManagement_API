@@ -1,4 +1,6 @@
-﻿using System;
+﻿using PrintManagerment_API.Application.Constants;
+using PrintManagerment_API.Doman.Enumerates;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -18,8 +20,10 @@ namespace PrintManagerment_API.Application.Payload.RequestModels.UserRequests
         [Required(ErrorMessage = "DateOfBirth is required")]
         public DateTime DateOfBirth { get; set; }
         [Required(ErrorMessage = "Email is required")]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
         [Required(ErrorMessage = "PhoneNumber is required")]
         public string PhoneNumber { get; set; } = string.Empty;
+        //[Required(ErrorMessage = "TeamId is required")]
+        //public int TeamId { get; set; }
     }
 }

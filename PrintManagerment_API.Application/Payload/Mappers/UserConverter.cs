@@ -11,13 +11,21 @@ namespace PrintManagerment_API.Application.Payload.Mapper
 {
     public class UserConverter
     {
-        public DataResponseUser EntityDTO(User user)
+        private readonly IBaseRepository<Team> _baseTeamRepository;
+        public UserConverter(IBaseRepository<Team> baseTeamRepository)
         {
-            var teamName = string.Empty;
-            if (user.TeamId == null)
+            _baseTeamRepository = baseTeamRepository;
+        }
+        public async Task<DataResponseUser> EntityDTO(User user)
+        {
+            var teamname = "None";
+            if (user.TeamId != null)
             {
-                teamName = "None";
+                var team = await _baseTeamRepository.GetByIdAsync(user.TeamId.Value);
+                teamname = team.Name;
             }
+            
+           
             return new DataResponseUser
             {
                 Id = user.Id,
@@ -26,7 +34,7 @@ namespace PrintManagerment_API.Application.Payload.Mapper
                 PhoneNumber = user.PhoneNumber,
                 DateOfBirth = user.DateOfBirth,
                 Avatar = user.Avatar,
-                TeamName = teamName,
+                TeamName = teamname,
                 CreateTime = user.CreateTime,
                 UpdateTime = user.UpdateTime,
             };
