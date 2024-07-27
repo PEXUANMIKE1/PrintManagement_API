@@ -1,6 +1,7 @@
 ﻿using PrintManagerment_API.Application.Payload.Response;
 using PrintManagerment_API.Application.Payload.ResponseModels.DataProject;
 using PrintManagerment_API.Doman.Entities;
+using PrintManagerment_API.Doman.Enumerates;
 using PrintManagerment_API.Doman.InterfaceRepositories;
 using System;
 using System.Collections.Generic;
@@ -14,17 +15,26 @@ namespace PrintManagerment_API.Application.Payload.Mappers
     {
         private readonly IBaseRepository<User> _baseUserRepository;
         private readonly IBaseRepository<Customer> _baseCustomerRepository;
-        public ProjectConverter(IBaseRepository<User> baseUserRepository, IBaseRepository<Customer> baseCustomerRepository)
+        private readonly IBaseRepository<Design> _baseDesignRepository;
+        public ProjectConverter(IBaseRepository<User> baseUserRepository, IBaseRepository<Customer> baseCustomerRepository, IBaseRepository<Design> baseDesignRepository)
         {
             _baseUserRepository = baseUserRepository;
             _baseCustomerRepository = baseCustomerRepository;
+            _baseDesignRepository = baseDesignRepository;
         }
         public async Task<DataResponseProject> EntityDTO(Project project)
         {
-            var user = await _baseUserRepository.GetByIdAsync(project.EmployeeId.Value);
+            var imgProject = "img-default.png";
+            var Design = await _baseDesignRepository.GetAsync(x => x.ProjectId == project.Id && x.DesignStatus==ConstantEnums.DesignStatus.Approved);
+            if(Design != null)
+            {
+                imgProject = Design.FilePath;
+            }
+            var user = await _baseUserRepository.GetByIdAsync(project.EmployeeId);
             var customer = await _baseCustomerRepository.GetByIdAsync(project.CustomerId);
             return new DataResponseProject
             {
+                Id = project.Id,
                 ProjectName = project.ProjectName,
                 RequestDescriptionFromCustomer = project.RequestDescriptionFromCustomer,
                 StartDate = project.StartDate,
@@ -32,6 +42,7 @@ namespace PrintManagerment_API.Application.Payload.Mappers
                 EmployeeName = user.FullName,
                 CustomerName = customer.FullName,
                 ProjectStatus = project.ProjectStatus.ToString(),
+                ProjectImg = imgProject,
             };
         }
     }

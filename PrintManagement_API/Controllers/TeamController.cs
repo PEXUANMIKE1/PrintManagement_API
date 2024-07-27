@@ -45,9 +45,15 @@ namespace PrintManagement_API.Controllers
             return Ok(await _teamService.DeleteTeamById(teamId));
         }
         [HttpPut]
-        public async Task<IActionResult> AddEmployeeInTeam(int userId, int teamId)
+        public async Task<IActionResult> AddEmployeeInTeam(int userId, int? teamId)
         {
             return Ok(await _teamService.AddEmployeeInTeam(userId,teamId));
         }
+        [HttpGet]
+        public async Task<IActionResult> GetTeamByTeamName(string teamName)
+        {
+            return Ok(await _teamService.GetTeamByTeamName(teamName));
+        }
+
     }
 }

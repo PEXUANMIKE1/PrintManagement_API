@@ -17,63 +17,57 @@ namespace PrintManagerment_API.Doman.Enumerates
 
         public enum BillStatus
         {
-            Pending,      // Chờ xử lý
-            Approved,     // Đã phê duyệt
-            Paid,         // Đã thanh toán
-            Unpaid,       // Chưa thanh toán
-            Cancelled,    // Đã hủy
-            Refunded      // Đã hoàn tiền
+            Pending = 0, //chờ xử lý
+            Unpaid = 1, // chưa thanh toán
+            Paid = 2,   // Đã thanh toán
         }
 
         public enum DeliveryStatus
         {
-            Pending,       // Chờ xử lý
-            Scheduled,     // Đã lên lịch
-            InTransit,     // Đang vận chuyển
-            OutForDelivery,// Đang giao hàng
-            Delivered,     // Đã giao hàng
-            FailedDelivery,// Giao hàng thất bại
-            Returned,      // Đã trả lại
-            Cancelled      // Đã hủy
+            Pending = 1,     // Chờ xử lý
+            InTransit = 2,   // Đang giao hàng
+            Delivered = 3,   // Giao hàng thành công
+            Refused = 4 ,    // Từ chối nhận
+            Returned = 5     // Đã trả lại
         }
 
         public enum ResourceType
         {
-            Equipment,   // Thiết bị
-            Material,    // Vật liệu
-            Tool,        // Công cụ
-            Software     // Phần mềm
+            Paper = 1,       // Giấy
+            Supplies = 2,    // Vật liệu
+            Equipment = 3,   // Thiết bị
+            Software = 4     // Phần mềm
         }
 
         public enum ResourceStatus
         {
-            Available,   // Sẵn sàng sử dụng
-            Maintenance, // Cần bảo trì
+            Available = 1,   // Sẵn sàng sử dụng
+            Maintenance = 2, // Cần bảo trì
         }
 
         public enum ProjectStatus
         {
-            Designing = 1,  // Đang thiết kế
-            Printing = 2,   // Đang in
-            Completed = 3   // Đã Hoàn thành
+            Designing = 1,   // Đang thiết kế
+            Designed = 2,    // Đã thiết kế - 25%
+            ConfirmPrint = 3,// Xác nhận in ấn - 50%
+            Printing = 4,    // Đang in - 75%
+            Completed = 5    // Đã Hoàn thành - 100%
         }
 
         public enum DesignStatus
         {
-            Pending,        // Chờ xử lý
-            InProgress,     // Đang thiết kế
-            Completed,      // Đã hoàn thành
-            Approved,       // Đã phê duyệt
-            Rejected        // Bị từ chối
+            Completed = 1,      // Đã hoàn thành
+            NotYetApproved = 2, // Chưa được phê duyệt
+            Approved = 3,       // Đã phê duyệt
+            Rejected = 4        // Bị từ chối
         }
 
         public enum PrintJobStatus
         {
-            Pending,        // Chờ xử lý
-            InProgress,     // Đang in
-            Completed,      // Đã hoàn thành
-            OnHold,         // Đang tạm dừng
-            Cancelled       // Đã hủy
+            Pending = 1,        // Chờ xử lý
+            InProgress = 2,     // Đang in
+            Completed = 3,      // Đã hoàn thành
+            Cancelled = 4       // Đã hủy
         }
     }
 }

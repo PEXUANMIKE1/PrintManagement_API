@@ -10,7 +10,7 @@ namespace PrintManagerment_API.Doman.Entities
     {
         public int ResourcePropertyId { get; set; }
         public ResourceProperty? ResourceProperty { get; set; }
-        public string ResourcePropertyName { get; set; } = string.Empty;
+        public string PropertyDetailName { get; set; } = string.Empty;
         public string Image { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public int Quantity { get; set; }

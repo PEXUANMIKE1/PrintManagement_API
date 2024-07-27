@@ -56,5 +56,15 @@ namespace PrintManagement_API.Controllers
         {
             return Ok(await _authService.ConfirmCreateNewPassword(request));
         }
+        [HttpPut]
+        public async Task<IActionResult> ChangeRoleForUser(int userId, string role)
+        {
+            return Ok(await _authService.ChangeRoleForUser(userId,role));
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetAllRole()
+        {
+            return Ok(await _authService.GetAllRole());
+        }
     }
 }

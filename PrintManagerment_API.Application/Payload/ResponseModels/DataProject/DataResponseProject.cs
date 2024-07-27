@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace PrintManagerment_API.Application.Payload.ResponseModels.DataProject
 {
-    public class DataResponseProject
+    public class DataResponseProject : DataResponseBase
     {
         public string ProjectName { get; set; } = string.Empty;
         public string RequestDescriptionFromCustomer { get; set; } = string.Empty;
@@ -17,5 +17,6 @@ namespace PrintManagerment_API.Application.Payload.ResponseModels.DataProject
         public string EmployeeName { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
         public string ProjectStatus { get; set; } = string.Empty;
+        public string ProjectImg { get; set; } = string.Empty;
     }
 }

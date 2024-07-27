@@ -9,6 +9,6 @@ namespace PrintManagerment_API.Application.InterfaceServices
 {
     public interface IEmailService
     {
-        string SendEmail(EmailMessage emailMessage);
+        Task<string> SendEmail(EmailMessage emailMessage);
     }
 }

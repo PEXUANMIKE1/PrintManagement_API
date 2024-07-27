@@ -12,7 +12,8 @@ namespace PrintManagerment_API.Doman.InterfaceRepositories
         Task<User> GetUserByEmail(string email);
         Task<User> GetUserByUserName(string userName);
         Task<User> GetUserByPhoneNumber(string phoneNumber);
-        Task AddRoleForUserAsync(User user, List<string> listRoles);
+        Task AddListRoleForUserAsync(User user, List<string> listRoles);
+        Task ChangeRoleForUserAsync(User user, string role);
         Task<IEnumerable<string>> GetRolesOfUserAsync(User user);
         Task DeleteRoleOfUserAsync(User user, List<string> roles);
     }

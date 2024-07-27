@@ -15,12 +15,14 @@ using PrintManagerment_API.Doman.InterfaceRepositories;
 using PrintManagerment_API.Doman.Validations;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 using BCryptNet = BCrypt.Net.BCrypt;
 
 namespace PrintManagerment_API.Application.ImplementServices
@@ -284,42 +286,59 @@ namespace PrintManagerment_API.Application.ImplementServices
                         Message = "User name đã tồn tại",
                         Data = null
                     };
-                }               
-                var User = new User
+                }
+                using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
                 {
-                    IsActive = true,
-                    CreateTime = DateTime.Now,
-                    UserName = request.UserName,
-                    Password = BCryptNet.HashPassword(request.Password),
-                    FullName = request.FullName,
-                    DateOfBirth = request.DateOfBirth,
-                    Email = request.Email,
-                    Avatar = "https://img.freepik.com/premium-vector/cute-boy-smiling-cartoon-kawaii-boy-illustration-boy-avatar-happy-kid_1001605-3445.jpg?w=826",
-                    PhoneNumber = request.PhoneNumber,
-                    TeamId = null,
-                };
-                User = await _baseUserRepository.CreateAsync(User);
-                //add role mặc định cho tài khoản: User
-                await _userRepository.AddRoleForUserAsync(User, new List<string> { "User" });
-                //tạo đối tượng bảng confirmEmail lưu vào db
-                ConfirmEmail confirmEmail = new ConfirmEmail
-                {
-                    ConfirmCode = GenerateCodeActive(),
-                    IsConfirmed = false,
-                    UserId = User.Id,
-                    ExpiryTime = DateTime.Now,
-                };
-                confirmEmail = await _baseConfirmEmailRepository.CreateAsync(confirmEmail);
-                var message = new EmailMessage(new string[] { request.Email }, "Xác nhận email đăng ký tài khoản",$"Mã xác nhận email của bạn: {confirmEmail.ConfirmCode}");
-                //send confirm code về mail 
-                var responseMessage = _emailService.SendEmail(message);
-
-                return new ResponseObject<DataResponseUser>
-                {
-                    Status = StatusCodes.Status201Created,
-                    Message = $"Mã xác nhận email đã được gửi! Vui lòng kiểm tra email",
-                    Data = await _userConverter.EntityDTO(User)
-                };
+                    try
+                    {
+                        var User = new User
+                        {
+                            IsActive = true,
+                            CreateTime = DateTime.Now,
+                            UserName = request.UserName,
+                            Password = BCryptNet.HashPassword(request.Password),
+                            FullName = request.FullName,
+                            DateOfBirth = request.DateOfBirth,
+                            Email = request.Email,
+                            Avatar = "avt-default.png",
+                            PhoneNumber = request.PhoneNumber,
+                            TeamId = null,
+                        };
+                        User = await _baseUserRepository.CreateAsync(User);
+                        //add role mặc định cho tài khoản: Employee
+                        await _userRepository.AddListRoleForUserAsync(User, new List<string> { "Employee" });
+                        //tạo đối tượng bảng confirmEmail lưu vào db
+                        ConfirmEmail confirmEmail = new ConfirmEmail
+                        {
+                            ConfirmCode = GenerateCodeActive(),
+                            IsConfirmed = false,
+                            UserId = User.Id,
+                            ExpiryTime = DateTime.Now,
+                        };
+                        confirmEmail = await _baseConfirmEmailRepository.CreateAsync(confirmEmail);
+                        var message = new EmailMessage(new string[] { request.Email }, "Xác nhận email đăng ký tài khoản", $"Mã xác nhận email của bạn: {confirmEmail.ConfirmCode}");
+                        //send confirm code về mail 
+                        var responseMessage = _emailService.SendEmail(message);
+                        scope.Complete();
+                        return new ResponseObject<DataResponseUser>
+                        {
+                            Status = StatusCodes.Status201Created,
+                            Message = $"Mã xác nhận email đã được gửi! Vui lòng kiểm tra email",
+                            Data = await _userConverter.EntityDTO(User)
+                        };
+                    }
+                    catch (Exception ex)
+                    {
+                        scope.Dispose();
+                        return new ResponseObject<DataResponseUser>
+                        {
+                            Status = StatusCodes.Status400BadRequest,
+                            Message = "Error: " + ex.StackTrace,
+                            Data = null
+                        };
+                    }
+                }
+                
             }
             catch (Exception ex)
             {
@@ -502,33 +521,110 @@ namespace PrintManagerment_API.Application.ImplementServices
                 return "Error: " + ex.StackTrace;
             }
         }
-        public async Task<string> AddRoleForUser(int userId, List<string> roles)
+        public async Task<ResponseObject<object>> ChangeRoleForUser(int userId, string role)
         {
-            var currentUser = _httpContextAccessor.HttpContext.User;
-            if (!currentUser.Identity.IsAuthenticated)
+            try
             {
-                return "Người dùng chưa xác thực!";
+                var currentUser = _httpContextAccessor.HttpContext.User;
+                if (!currentUser.Identity.IsAuthenticated)
+                {
+                    return new ResponseObject<object>
+                    {
+                        Status = StatusCodes.Status401Unauthorized,
+                        Message = "Người dùng chưa xác thực",
+                        Data = null
+                    };
+                }
+                if (!currentUser.IsInRole("Admin"))
+                {
+                    return new ResponseObject<object>
+                    {
+                        Status = StatusCodes.Status403Forbidden,
+                        Message = "Người dùng không đủ quyền để sử dụng chức năng này",
+                        Data = null
+                    };
+                }
+                var user = await _baseUserRepository.GetByIdAsync(userId);
+                if (user == null)
+                {
+                    return new ResponseObject<object>
+                    {
+                        Status = StatusCodes.Status404NotFound,
+                        Message = "Người dùng không tồn tại hoặc đã bị xóa!",
+                        Data = null
+                    };
+                }
+                await _userRepository.ChangeRoleForUserAsync(user,role);
+
+                return new ResponseObject<object>
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = "Thay đổi quyền người dùng thành công",
+                    Data = null
+                };
             }
-            if (currentUser.IsInRole("Admin"))
+            catch (Exception ex)
             {
-                return "Người dùng không đủ quyền để sử dụng chức năng này";
+                return new ResponseObject<object>
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = "Error:"+ ex.StackTrace,
+                    Data = null
+                };
             }
-            return "Chức năng này đang được phát triển";
         }
-        public async Task<string> DeleteRoleForUser(int userId, List<string> roles)
+        public async Task<ResponseObject<IEnumerable<Role>>> GetAllRole()
         {
-            var currentUser = _httpContextAccessor.HttpContext.User;
-            if (!currentUser.Identity.IsAuthenticated)
+            try
             {
-                return "Người dùng chưa xác thực!";
+                var currentUser = _httpContextAccessor.HttpContext.User;
+                if (!currentUser.Identity.IsAuthenticated)
+                {
+                    return new ResponseObject<IEnumerable<Role>>
+                    {
+                        Status = StatusCodes.Status401Unauthorized,
+                        Message = "Người dùng chưa xác thực",
+                        Data = null
+                    };
+                }
+                if (!currentUser.IsInRole("Admin"))
+                {
+                    return new ResponseObject<IEnumerable<Role>>
+                    {
+                        Status = StatusCodes.Status403Forbidden,
+                        Message = "Người dùng không đủ quyền để sử dụng chức năng này",
+                        Data = null
+                    };
+                }
+                var roles = await _baseRoleRepository.GetAllAsync();
+                if (roles == null)
+                {
+                    return new ResponseObject<IEnumerable<Role>>
+                    {
+                        Status = StatusCodes.Status404NotFound,
+                        Message = "Danh sách trống!",
+                        Data = null
+                    };
+                }
+                return new ResponseObject<IEnumerable<Role>>
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = "Lấy danh sách roles thành công",
+                    Data = roles
+                };
             }
-            if (currentUser.IsInRole("Admin"))
+            catch (Exception ex)
             {
-                return "Người dùng không đủ quyền để sử dụng chức năng này";
+                return new ResponseObject<IEnumerable<Role>>
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = "Error:" + ex.StackTrace,
+                    Data = null
+                };
             }
-            return "Chức năng này đang được phát triển";
         }
-        
+
+
         #endregion
 
     }

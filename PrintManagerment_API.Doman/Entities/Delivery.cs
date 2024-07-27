@@ -19,7 +19,7 @@ namespace PrintManagerment_API.Doman.Entities
         public string DeliveryAddress { get; set; } = string.Empty;
         public DateTime EstimateDeliveryTime { get; set; } //thời gian giao dự kiến
         public DateTime? ActualDeliveryTime { get; set; } //thời gian giao thực tế
-        public ConstantEnums.DeliveryStatus DeliveryStatus { get; set; } = ConstantEnums.DeliveryStatus.Pending;
+        public ConstantEnums.DeliveryStatus DeliveryStatus { get; set; }
         
     }
 }

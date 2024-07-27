@@ -44,7 +44,7 @@ namespace PrintManagerment_API.Infrastructure.ImplementRepositories
         }
         #endregion
 
-        public async Task AddRoleForUserAsync(User user, List<string> listRoles)
+        public async Task AddListRoleForUserAsync(User user, List<string> listRoles)
         {
             if(user == null)
             {
@@ -129,6 +129,52 @@ namespace PrintManagerment_API.Infrastructure.ImplementRepositories
         {
             var user = await _appDbContext.Users.SingleOrDefaultAsync(x => x.Email.ToLower().Equals(userName.ToLower()));
             return user;
+        }
+
+        public async Task ChangeRoleForUserAsync(User user, string role)
+        {
+            if (user == null)
+            {
+                throw new ArgumentNullException(nameof(user));
+            }
+            if (role == null)
+            {
+                throw new ArgumentNullException(nameof(role));
+            }
+            var roleOfUser = await GetRolesOfUserAsync(user);
+            foreach (var item in roleOfUser)
+            {
+                
+                if (item.ToLower().Equals(role.Trim().ToLower()))
+                {
+                    throw new ArgumentException("Người dùng đã có quyền này rồi!");
+                }
+                else
+                {
+                    var roleItem = await _appDbContext.Roles.SingleOrDefaultAsync(x => x.RoleCode.Equals(role.Trim()));
+                    if (roleItem == null)
+                    {
+                        throw new ArgumentNullException("Không tồn tại quyền này!");
+                    }
+                    //Nếu người có role cũ thì đổi roleId trong bảng permission thành roleId mới
+                    var permissUser = await _appDbContext.Permissions.SingleOrDefaultAsync(x=>x.UserId == user.Id);
+                    if (permissUser != null)
+                    {
+                        permissUser.RoleId = roleItem.Id;
+                        _appDbContext.Permissions.Update(permissUser);
+                    }
+                    else
+                    {
+                        //thêm role mới
+                        _appDbContext.Permissions.Add(new Permissions
+                        {
+                            RoleId = roleItem.Id,
+                            UserId = user.Id,
+                        });
+                    }
+                }
+            }
+            _appDbContext.SaveChanges();
         }
     }
 }

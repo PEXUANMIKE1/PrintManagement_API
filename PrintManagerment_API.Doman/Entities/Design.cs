@@ -15,7 +15,7 @@ namespace PrintManagerment_API.Doman.Entities
         public User? Desginer { get; set; }
         public string FilePath { get; set; } = string.Empty;
         public DateTime DesignTime { get; set; }
-        public ConstantEnums.DesignStatus DesignStatus { get; set; } = ConstantEnums.DesignStatus.Pending;
+        public ConstantEnums.DesignStatus DesignStatus { get; set; }
         public int ApproverId { get; set; }
         public virtual ICollection<PrintJobs>? PrintJobs { get; set; }
     }

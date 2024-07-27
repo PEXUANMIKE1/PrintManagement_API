@@ -19,10 +19,10 @@ namespace PrintManagerment_API.Application.ImplementServices
             _configuration = configuration;
         }
 
-        public string SendEmail(EmailMessage emailMessage)
+        public async Task<string> SendEmail(EmailMessage emailMessage)
         {
             var message = CreateEmailMessage(emailMessage);
-            Send(message);
+            await Send(message);
             var recipients = string.Join(", ", message.To);
             return ResponseMessage.GetEmailSuccessMessage(recipients);
         }
@@ -35,15 +35,15 @@ namespace PrintManagerment_API.Application.ImplementServices
             emailMessage.Body = new TextPart(MimeKit.Text.TextFormat.Text) { Text = message.Content };
             return emailMessage;
         }
-        private void Send(MimeMessage message)
+        private async Task Send(MimeMessage message)
         {
             using var client = new SmtpClient();
             try
             {
-                client.Connect(_configuration.SmtpServer, _configuration.Port, true);
+                await client.ConnectAsync(_configuration.SmtpServer, _configuration.Port, true);
                 client.AuthenticationMechanisms.Remove("XAUTH2");
-                client.Authenticate(_configuration.Username, _configuration.Password);
-                client.Send(message);
+                await client.AuthenticateAsync(_configuration.Username, _configuration.Password);
+                await client.SendAsync(message);
             }
             catch
             {
@@ -51,7 +51,7 @@ namespace PrintManagerment_API.Application.ImplementServices
             }
             finally
             {
-                client.Disconnect(true);
+                await client.DisconnectAsync(true);
                 client.Dispose();
             }
         }

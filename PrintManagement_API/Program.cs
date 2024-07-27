@@ -15,6 +15,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using PrintManagerment_API.Application.Payload.Mappers;
+using Microsoft.Extensions.FileProviders;
+using Org.BouncyCastle.Asn1.Cmp;
 
 namespace PrintManagement_API
 {
@@ -26,10 +28,27 @@ namespace PrintManagement_API
 
             // Add services to the container.
             builder.Services.AddDbContext<AppDbContext>(option => option.UseSqlServer(builder.Configuration.GetConnectionString(Constant.AppSettingKeys.DEFAULT_CONNECTION)));
+            builder.Services.AddScoped<IDbContext, AppDbContext>();
+
+            //add scope Service
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ITeamService, TeamService>();
+            builder.Services.AddScoped<IPrintJobsService, PrintJobService>();
+            builder.Services.AddScoped<IBillService, BillService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<IDesignService, DesignService>();
             builder.Services.AddScoped<IProjectService, ProjectService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IResourcePropertyDetailService, ResourcePropertyDetailService>();
+            builder.Services.AddScoped<IDeliveryService, DeliveryService>();
+            //add scope repository
+            builder.Services.AddScoped<IBaseRepository<Design>, BaseRepository<Design>>();
+            builder.Services.AddScoped<IBaseRepository<Delivery>, BaseRepository<Delivery>>();
+            builder.Services.AddScoped<IBaseRepository<ShippingMethod>, BaseRepository<ShippingMethod>>();
+            builder.Services.AddScoped<IBaseRepository<Bill>, BaseRepository<Bill>>();
+            builder.Services.AddScoped<IBaseRepository<PrintJobs>, BaseRepository<PrintJobs>>();
+            builder.Services.AddScoped<IBaseRepository<Notification>, BaseRepository<Notification>>();
             builder.Services.AddScoped<IBaseRepository<User>, BaseRepository<User>>();
             builder.Services.AddScoped<IBaseRepository<Project>, BaseRepository<Project>>();
             builder.Services.AddScoped<IBaseRepository<Customer>, BaseRepository<Customer>>();
@@ -38,12 +57,25 @@ namespace PrintManagement_API
             builder.Services.AddScoped<IBaseRepository<ConfirmEmail>, BaseRepository<ConfirmEmail>>();
             builder.Services.AddScoped<IBaseRepository<RefreshToken>, BaseRepository<RefreshToken>>();
             builder.Services.AddScoped<IBaseRepository<Team>, BaseRepository<Team>>();
-            builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IBaseRepository<ResourcePropertyDetail>, BaseRepository<ResourcePropertyDetail>>();
+            builder.Services.AddScoped<IBaseRepository<ResourceProperty>, BaseRepository<ResourceProperty>>();
+            builder.Services.AddScoped<IBaseRepository<Resources>, BaseRepository<Resources>>();
+            builder.Services.AddScoped<IBaseRepository<ResourceForPrintJob>, BaseRepository<ResourceForPrintJob>>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
-            builder.Services.AddScoped<IDbContext, AppDbContext>();
+            //add scope converter
             builder.Services.AddScoped<UserConverter>();
             builder.Services.AddScoped<TeamConverter>();
             builder.Services.AddScoped<ProjectConverter>();
+            builder.Services.AddScoped<DesignConverter>();
+            builder.Services.AddScoped<EmployeeConverter>();
+            builder.Services.AddScoped<CustomerConverter>();
+            builder.Services.AddScoped<NotifyConverter>();
+            builder.Services.AddScoped<BillConverter>();
+            builder.Services.AddScoped<PrintJobConverter>();
+            builder.Services.AddScoped<PropertyDetailConverter>();
+            builder.Services.AddScoped<BillDeliveryConverter>();
+            builder.Services.AddScoped<DeliveryConverter>();
+
             builder.Services.AddCors();
             builder.Services.AddHttpContextAccessor();
             var emailConfig = builder.Configuration.GetSection("EmailConfiguration").Get<EmailConfiguration>();
@@ -71,6 +103,12 @@ namespace PrintManagement_API
             });
 
             builder.Services.AddControllers();
+                //.AddJsonOptions(options =>
+                //{
+                //    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+                //    options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+                //    options.JsonSerializerOptions.WriteIndented = true;
+                //});
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(option =>
@@ -118,7 +156,11 @@ namespace PrintManagement_API
               .AllowAnyHeader()
               .SetIsOriginAllowed(origin => true)
               .AllowCredentials());
-
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, "Upload/Files")),
+                RequestPath = "/Upload/Files"
+            });
             app.MapControllers();
 
             app.Run();

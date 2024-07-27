@@ -13,6 +13,8 @@ namespace PrintManagerment_API.Application.InterfaceServices
     {
         Task<ResponseObject<DataResponseUser>>GetUserById(int userId);
         Task<ResponseObject<IEnumerable<DataResponseUser>>>GetAllUser();
+        Task<ResponseObject<IEnumerable<DataResponseUser>>>GetAllMemberOfTeamNotManager(string teamName);
         Task<ResponseObject<IEnumerable<DataResponseUser>>>GetAllUserOfTeam(int teamId);
+        Task<ResponseObject<DataResponseUser>>UpdateUser(Request_UpdateUser request);
     }
 }

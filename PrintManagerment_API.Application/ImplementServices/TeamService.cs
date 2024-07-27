@@ -186,6 +186,17 @@ namespace PrintManagerment_API.Application.ImplementServices
                         Data = null
                     };
                 }
+                var listUser = await _baseUserRepository.GetAllAsync(x=>x.TeamId == teamId);
+
+                if(listUser != null) 
+                {
+                    foreach (var user in listUser)
+                    {
+                        user.TeamId = null;
+                    }
+                    await _baseUserRepository.UpdateAsync(listUser);
+                }
+
                 await _baseTeamRepository.DeleteAsync(teamId);
                 return new ResponseObject<object>
                 {
@@ -321,7 +332,7 @@ namespace PrintManagerment_API.Application.ImplementServices
                 };
             }
         }
-        public async Task<ResponseObject<object>> AddEmployeeInTeam(int userId, int teamId)
+        public async Task<ResponseObject<object>> AddEmployeeInTeam(int userId, int? teamId)
         {
             try
             {
@@ -368,12 +379,16 @@ namespace PrintManagerment_API.Application.ImplementServices
                     }
                     teamOld.NumberOfMember -= 1;
                     await _baseTeamRepository.UpdateAsync(teamOld);
+                    user.TeamId = null;
+                    await _baseUserRepository.UpdateAsync(user);
                 }
-                user.TeamId = teamId;
-                var teamNew = await _baseTeamRepository.GetByIdAsync(teamId);
-                teamNew.NumberOfMember += 1;
-                await _baseTeamRepository.UpdateAsync(teamNew);
-                await _baseUserRepository.UpdateAsync(user);
+                if(teamId.HasValue)
+                {
+                    user.TeamId = teamId;
+                    var teamNew = await _baseTeamRepository.GetByIdAsync(teamId.Value);
+                    teamNew.NumberOfMember += 1;
+                    await _baseTeamRepository.UpdateAsync(teamNew);
+                }
                 return new ResponseObject<object>
                 {
                     Status = StatusCodes.Status200OK,
@@ -387,6 +402,47 @@ namespace PrintManagerment_API.Application.ImplementServices
                 {
                     Status = StatusCodes.Status400BadRequest,
                     Message = "Error: " + ex.Message,
+                    Data = null
+                };
+            }
+        }
+        public async Task<ResponseObject<DataResponseTeam>> GetTeamByTeamName(string teamName)
+        {
+            try
+            {
+                var currentUser = _contextAccessor.HttpContext.User;
+                if (!currentUser.Identity.IsAuthenticated)
+                {
+                    return new ResponseObject<DataResponseTeam>
+                    {
+                        Status = StatusCodes.Status401Unauthorized,
+                        Message = "Người dùng chưa xác thực!",
+                        Data = null
+                    };
+                }
+                var team = await _baseTeamRepository.GetAsync(x => x.Name == teamName);
+                if (team == null)
+                {
+                    return new ResponseObject<DataResponseTeam>
+                    {
+                        Status = StatusCodes.Status404NotFound,
+                        Message = "Phòng ban này đã bị xóa hoặc không tồn tại!",
+                        Data = null
+                    };
+                }
+                return new ResponseObject<DataResponseTeam>
+                {
+                    Status = StatusCodes.Status201Created,
+                    Message = "Lấy dữ liệu team thành công!",
+                    Data = await _converter.EntityDTO(team)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ResponseObject<DataResponseTeam>
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = ex.Message,
                     Data = null
                 };
             }

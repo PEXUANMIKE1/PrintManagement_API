@@ -20,8 +20,7 @@ namespace PrintManagerment_API.Application.InterfaceServices
         Task<ResponseObject<DataResponseUser>> ChangePassword(int userId, Request_ChangePassword request);
         Task<string> ForgotPassword(string email);//gửi mã xác nhận về email
         Task<string> ConfirmCreateNewPassword(Request_ForgotPasswordCreateNew request); //nhập mã xác nhận và tạo mới mk
-        Task<string> AddRoleForUser(int userId, List<string> roles);
-        Task<string> DeleteRoleForUser(int userId, List<string> roles);
-
+        Task<ResponseObject<object>> ChangeRoleForUser(int userId, string role);
+        Task<ResponseObject<IEnumerable<Role>>> GetAllRole();
     }
 }

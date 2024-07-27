@@ -27,9 +27,24 @@ namespace PrintManagement_API.Controllers
             return Ok(await _projectService.GetAllProject());
         }
         [HttpGet]
+        public async Task<IActionResult> GetProjectById(int projectId)
+        {
+            return Ok(await _projectService.GetProjectById(projectId));
+        }
+        [HttpGet]
         public async Task<IActionResult> GetAllProjectOfUser()
         {
             return Ok(await _projectService.GetAllProjectOfUser());
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetCustomerOfProject(int projectId)
+        {
+            return Ok(await _projectService.GetCustomerOfProject(projectId));
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetEmployeeOfProject(int projectId)
+        {
+            return Ok(await _projectService.GetEmployeeOfProject(projectId));
         }
     }
 }

@@ -14,6 +14,7 @@ namespace PrintManagerment_API.Application.Payload.RequestModels.ProjectRequests
         public string CustomerFullName { get; set; } = string.Empty;
         public string CustomerPhoneNumber { get; set; } = string.Empty;
         public string CustomerAddress { get; set; } = string.Empty;
+        public string CustomerEmail { get; set; } = string.Empty;
 
         //thông tin dự án
         public string ProjectName { get; set; } = string.Empty;

@@ -10,7 +10,7 @@ namespace PrintManagerment_API.Doman.Entities
     public class Bill :BaseEnities
     {
         public string BillName { get; set; } = string.Empty;
-        public ConstantEnums.BillStatus BillStatus { get; set; } = ConstantEnums.BillStatus.Pending;
+        public ConstantEnums.BillStatus BillStatus { get; set; }
         public decimal TotalMoney { get; set; }
         public int ProjectId { get; set; }
         public int CustomerId { get; set; }

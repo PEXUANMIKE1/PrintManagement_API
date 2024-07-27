@@ -15,9 +15,10 @@ namespace PrintManagerment_API.Application.InterfaceServices
     {
         Task<ResponseObject<IEnumerable<DataResponseTeam>>> GetAllTeam();
         Task<ResponseObject<DataResponseTeam>> GetTeamById(int teamId);
+        Task<ResponseObject<DataResponseTeam>> GetTeamByTeamName(string teamName);
         Task<ResponseObject<DataResponseTeam>> CreateTeam(Request_Team request);
         Task<ResponseObject<DataResponseTeam>> UpdateTeam(int teamId, Request_Team request);
         Task<ResponseObject<object>> DeleteTeamById(int teamId);
-        Task<ResponseObject<object>> AddEmployeeInTeam(int userId, int teamId);
+        Task<ResponseObject<object>> AddEmployeeInTeam(int userId, int? teamId);
     }
 }
