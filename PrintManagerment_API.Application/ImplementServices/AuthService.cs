@@ -306,7 +306,8 @@ namespace PrintManagerment_API.Application.ImplementServices
                         };
                         User = await _baseUserRepository.CreateAsync(User);
                         //add role mặc định cho tài khoản: Employee
-                        await _userRepository.AddListRoleForUserAsync(User, new List<string> { "Employee" });
+                        //await _userRepository.AddListRoleForUserAsync(User, new List<string> { "Employee" });
+                        await _userRepository.ChangeRoleForUserAsync(User, "Employee");
                         //tạo đối tượng bảng confirmEmail lưu vào db
                         ConfirmEmail confirmEmail = new ConfirmEmail
                         {
@@ -567,7 +568,7 @@ namespace PrintManagerment_API.Application.ImplementServices
             {
                 return new ResponseObject<object>
                 {
-                    Status = StatusCodes.Status200OK,
+                    Status = StatusCodes.Status400BadRequest,
                     Message = "Error:"+ ex.StackTrace,
                     Data = null
                 };
@@ -624,6 +625,48 @@ namespace PrintManagerment_API.Application.ImplementServices
             }
         }
 
+        public async Task<ResponseObject<IEnumerable<string>>> GetRoleByIdUser(int userId)
+        {
+            try
+            {
+                var currentUser = _httpContextAccessor.HttpContext.User;
+                if (!currentUser.Identity.IsAuthenticated)
+                {
+                    return new ResponseObject<IEnumerable<string>>
+                    {
+                        Status = StatusCodes.Status401Unauthorized,
+                        Message = "Người dùng chưa xác thực",
+                        Data = null
+                    };
+                }
+                if (!currentUser.IsInRole("Admin"))
+                {
+                    return new ResponseObject<IEnumerable<string>>
+                    {
+                        Status = StatusCodes.Status403Forbidden,
+                        Message = "Người dùng không đủ quyền để sử dụng chức năng này",
+                        Data = null
+                    };
+                }
+                var user = await _baseUserRepository.GetByIdAsync(userId);
+                var roles = await _userRepository.GetRolesOfUserAsync(user);
+                return new ResponseObject<IEnumerable<string>>
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = "Lấy danh sách roles thành công",
+                    Data = roles
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ResponseObject<IEnumerable<string>>
+                {
+                    Status = StatusCodes.Status200OK,
+                    Message = "Error:" + ex.StackTrace,
+                    Data = null
+                };
+            }
+        }
 
         #endregion
 

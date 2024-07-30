@@ -44,7 +44,7 @@ namespace PrintManagerment_API.Infrastructure.ImplementRepositories
         }
         #endregion
 
-        public async Task AddListRoleForUserAsync(User user, List<string> listRoles)
+        public async Task AddListRoleForUserAsync(User user, List<string> listRoles) //có thể add nhiều role cho user
         {
             if(user == null)
             {
@@ -77,7 +77,6 @@ namespace PrintManagerment_API.Infrastructure.ImplementRepositories
             }
             _appDbContext.SaveChanges();
         }
-
         public async Task DeleteRoleOfUserAsync(User user, List<string> roles)
         {
             if(roles == null)
@@ -101,7 +100,7 @@ namespace PrintManagerment_API.Infrastructure.ImplementRepositories
             await _appDbContext.SaveChangesAsync();
         }
 
-        public async Task<IEnumerable<string>> GetRolesOfUserAsync(User user)
+        public async Task<IEnumerable<string>> GetRolesOfUserAsync(User user) //lấy ra danh sách role của ng dùng
         {
             var roles = new List<string>();
             var listRoleOfPermission = _appDbContext.Permissions.Where(x=>x.UserId == user.Id).AsQueryable();
@@ -111,6 +110,17 @@ namespace PrintManagerment_API.Infrastructure.ImplementRepositories
                 roles.Add(role.RoleCode);
             }
             return roles.AsEnumerable();
+        }
+
+        public async Task<string> GetRoleOfUserAsync(User user) //lấy ra role của ng dùng (trong trường hợp mỗi ng chỉ được cấp 1 role)
+        {
+            var RoleOfPermission = await _appDbContext.Permissions.SingleOrDefaultAsync(x => x.UserId == user.Id);
+            if(RoleOfPermission == null)
+            {
+                return string.Empty;
+            }
+            var role = await _appDbContext.Roles.SingleOrDefaultAsync(x=>x.Id == RoleOfPermission.RoleId);
+            return role.RoleCode;
         }
 
         public async Task<User> GetUserByEmail(string email)
@@ -131,7 +141,7 @@ namespace PrintManagerment_API.Infrastructure.ImplementRepositories
             return user;
         }
 
-        public async Task ChangeRoleForUserAsync(User user, string role)
+        public async Task ChangeRoleForUserAsync(User user, string role) //với điều kiện mỗi người chỉ sở hữu 1 role
         {
             if (user == null)
             {
@@ -141,40 +151,35 @@ namespace PrintManagerment_API.Infrastructure.ImplementRepositories
             {
                 throw new ArgumentNullException(nameof(role));
             }
-            var roleOfUser = await GetRolesOfUserAsync(user);
-            foreach (var item in roleOfUser)
+            var roleItem = await _appDbContext.Roles.SingleOrDefaultAsync(x => x.RoleCode.Equals(role.Trim()));
+            if (roleItem == null)
             {
-                
-                if (item.ToLower().Equals(role.Trim().ToLower()))
+                throw new ArgumentNullException("Không tồn tại quyền này!");
+            }
+            var roleOfUser = await GetRoleOfUserAsync(user);
+            if(roleOfUser == string.Empty) // nếu ng dùng k có role thì thêm mới
+            {
+                await _appDbContext.Permissions.AddAsync(new Permissions
+                {
+                    RoleId = roleItem.Id,
+                    UserId = user.Id,
+                });
+            }
+            else //có thì sửa
+            {
+                if (roleOfUser.ToLower().Equals(role.Trim().ToLower()))
                 {
                     throw new ArgumentException("Người dùng đã có quyền này rồi!");
                 }
                 else
                 {
-                    var roleItem = await _appDbContext.Roles.SingleOrDefaultAsync(x => x.RoleCode.Equals(role.Trim()));
-                    if (roleItem == null)
-                    {
-                        throw new ArgumentNullException("Không tồn tại quyền này!");
-                    }
-                    //Nếu người có role cũ thì đổi roleId trong bảng permission thành roleId mới
-                    var permissUser = await _appDbContext.Permissions.SingleOrDefaultAsync(x=>x.UserId == user.Id);
+                    var permissUser = await _appDbContext.Permissions.SingleOrDefaultAsync(x => x.UserId == user.Id);
                     if (permissUser != null)
-                    {
-                        permissUser.RoleId = roleItem.Id;
-                        _appDbContext.Permissions.Update(permissUser);
-                    }
-                    else
-                    {
-                        //thêm role mới
-                        _appDbContext.Permissions.Add(new Permissions
-                        {
-                            RoleId = roleItem.Id,
-                            UserId = user.Id,
-                        });
-                    }
+                    permissUser.RoleId = roleItem.Id;
+                    _appDbContext.Permissions.Update(permissUser);
                 }
             }
-            _appDbContext.SaveChanges();
+            await _appDbContext.SaveChangesAsync();
         }
     }
 }

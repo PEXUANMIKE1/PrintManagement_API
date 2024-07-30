@@ -22,5 +22,6 @@ namespace PrintManagerment_API.Application.InterfaceServices
         Task<string> ConfirmCreateNewPassword(Request_ForgotPasswordCreateNew request); //nhập mã xác nhận và tạo mới mk
         Task<ResponseObject<object>> ChangeRoleForUser(int userId, string role);
         Task<ResponseObject<IEnumerable<Role>>> GetAllRole();
+        Task<ResponseObject<IEnumerable<string>>> GetRoleByIdUser(int userId);
     }
 }

@@ -66,5 +66,10 @@ namespace PrintManagement_API.Controllers
         {
             return Ok(await _authService.GetAllRole());
         }
+        [HttpGet]
+        public async Task<IActionResult> GetRoleByUserId(int userId)
+        {
+            return Ok(await _authService.GetRoleByIdUser(userId));
+        }
     }
 }
