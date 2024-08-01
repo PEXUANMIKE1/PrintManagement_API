@@ -104,7 +104,7 @@ namespace PrintManagerment_API.Application.ImplementServices
                 return new ResponseObject<DataResponseDelivery>
                 {
                     Status = StatusCodes.Status201Created,
-                    Message = "Tạo đơn giao hàng thành công!",
+                    Message = "Giao đơn cho nhân viên vận chuyển thành công!",
                     Data = await _deliveryConverter.EntityDTO(delivery)
                 };
 

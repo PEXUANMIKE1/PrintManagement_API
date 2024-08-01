@@ -10,7 +10,7 @@ namespace PrintManagerment_API.Application.Payload.Mappers
 {
     public class NotifyConverter
     {
-        public DataResponseNotify EntityDTO(Notification notification)
+        public async Task<DataResponseNotify> EntityDTO(Notification notification)
         {
             return new DataResponseNotify
             {

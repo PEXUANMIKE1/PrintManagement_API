@@ -59,7 +59,7 @@ namespace PrintManagerment_API.Application.ImplementServices
                 var NotificationsDTO = new List<DataResponseNotify>();
                 foreach (var item in Notifications)
                 {
-                    NotificationsDTO.Add(_notifyConverter.EntityDTO(item));
+                    NotificationsDTO.Add(await _notifyConverter.EntityDTO(item));
                 }
                 var NotificationsDTORevert = NotificationsDTO.OrderByDescending(x=>x.Id);
                 return new ResponseObject<IEnumerable<DataResponseNotify>>

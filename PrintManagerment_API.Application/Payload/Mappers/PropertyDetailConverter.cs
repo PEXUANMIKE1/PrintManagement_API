@@ -32,7 +32,6 @@ namespace PrintManagerment_API.Application.Payload.Mappers
                 ResourceName = resource.ResourceName,
                 Image = data.Image,
                 Price = data.Price,
-                Quantity = data.Quantity,
             };
         }
     }

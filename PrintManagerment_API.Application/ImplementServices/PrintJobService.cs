@@ -32,11 +32,13 @@ namespace PrintManagerment_API.Application.ImplementServices
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly PrintJobConverter _jobConverter;
         private readonly IEmailService _emailService;
+        private readonly INotificationService _notificationService;
 
         public PrintJobService(IBaseRepository<PrintJobs> basePrintJobsRepository, IHttpContextAccessor httpContextAccessor,
             IBaseRepository<User> baseUserRepository, IBaseRepository<Team> baseTeamRepository, IBaseRepository<Design> baseDesignRepository,
             PrintJobConverter printJobConverter, IBaseRepository<Project> baseProjectRepository,IBaseRepository<ResourceForPrintJob> baseResourceForPrintJobRepository,
-            IBaseRepository<ResourcePropertyDetail> baseResourcePropertyDetailRepository, IBaseRepository<Bill> baseBillRepository, IEmailService emailService, IBaseRepository<Customer> baseCustomerRepository)
+            IBaseRepository<ResourcePropertyDetail> baseResourcePropertyDetailRepository, IBaseRepository<Bill> baseBillRepository, IEmailService emailService,
+            IBaseRepository<Customer> baseCustomerRepository, INotificationService notificationService)
         {
             _basePrintJobsRepository = basePrintJobsRepository;
             _httpContextAccessor = httpContextAccessor;
@@ -50,6 +52,7 @@ namespace PrintManagerment_API.Application.ImplementServices
             _baseBillRepository = baseBillRepository;
             _emailService = emailService;
             _baseCustomerRepository = baseCustomerRepository;
+            _notificationService = notificationService;
         }
 
         public async Task<ResponseObject<string>> StartPrintJobs(int projectId, List<Request_ConfirmPrintJobs> requests)
@@ -303,6 +306,8 @@ namespace PrintManagerment_API.Application.ImplementServices
                     $"\nTên khách hàng: {customer.FullName}" +
                     $"\nTổng tiền: {bill.TotalMoney} VNĐ\n");
                 var responseMessage = _emailService.SendEmail(message);
+                var getTeamDelivery = await _baseTeamRepository.GetAsync(x => x.Name.Equals("Delivery"));
+                await _notificationService.Notification(getTeamDelivery.ManagerId.Value, "Đã có đơn hàng được tạo hãy chuyển đơn cho nhân viên vận chuyển", $"/projects-delivery/{projectId}");
                 return new ResponseObject<string>
                 {
                     Status = StatusCodes.Status200OK,

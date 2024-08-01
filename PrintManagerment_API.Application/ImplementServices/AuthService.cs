@@ -233,7 +233,7 @@ namespace PrintManagerment_API.Application.ImplementServices
                 return new ResponseObject<DataResponseLogin>
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Message = "Đăng nhập thất bại!\nError: " + ex.StackTrace,
+                    Message = "Đăng nhập thất bại!",
                     Data = null
                 };
             }
@@ -624,7 +624,6 @@ namespace PrintManagerment_API.Application.ImplementServices
                 };
             }
         }
-
         public async Task<ResponseObject<IEnumerable<string>>> GetRoleByIdUser(int userId)
         {
             try
