@@ -17,6 +17,8 @@ using Microsoft.OpenApi.Models;
 using PrintManagerment_API.Application.Payload.Mappers;
 using Microsoft.Extensions.FileProviders;
 using Org.BouncyCastle.Asn1.Cmp;
+using StackExchange.Redis;
+using Role = PrintManagerment_API.Doman.Entities.Role;
 
 namespace PrintManagement_API
 {
@@ -25,6 +27,13 @@ namespace PrintManagement_API
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            //cấu hình redis
+
+            //Lưu ý: tải Memurai  hoặc sủ dụng WSL 
+            var redisConnectionString = builder.Configuration.GetConnectionString("RedisConnection");
+            builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
+
 
             // Add services to the container.
             builder.Services.AddDbContext<AppDbContext>(option => option.UseSqlServer(builder.Configuration.GetConnectionString(Constant.AppSettingKeys.DEFAULT_CONNECTION)));
@@ -103,13 +112,6 @@ namespace PrintManagement_API
             });
 
             builder.Services.AddControllers();
-                //.AddJsonOptions(options =>
-                //{
-                //    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
-                //    options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
-                //    options.JsonSerializerOptions.WriteIndented = true;
-                //});
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(option =>
             {
